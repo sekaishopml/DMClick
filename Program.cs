@@ -1,11 +1,6 @@
-// DMClick - dos mouse en la misma PC, cada uno con su flecha.
-//
-// Como funciona en pocas palabras:
-// el mouse principal es el cursor normal de Windows y no lo tocamos.
-// El segundo mouse se dibuja como una flecha naranja. Sus movimientos los atrapa el driver
-// Interception antes de que lleguen a Windows, por eso el cursor real nunca salta.
-// Cuando el segundo mouse hace click, llevamos el cursor un instante a su flecha,
-// hacemos el click y lo regresamos.
+// DMClick - 2 mouse 2 punteros
+// el principal es el cursor normal, el otro es la flecha naranja
+// cuando el otro hace click se lleva el cursor ahi, click y regresa
 using System;
 using System.Globalization;
 using System.IO;
@@ -17,7 +12,7 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
-        // Si ya hay uno abierto no abrimos otro
+        // si ya esta abierto no abre otro
         using var unaSolaVez = new Mutex(true, @"Local\DM-CLICK", out bool somosElPrimero);
         if (!somosElPrimero) return;
 
@@ -65,12 +60,12 @@ static class Program
     }
 }
 
-// config.ini en %APPDATA%\DM-CLICK (en Archivos de programa no se puede escribir sin admin)
+// config.ini en %APPDATA%\DM-CLICK
 class Configuracion
 {
     public string Ruta;
-    public string Principal;          // "numero|id de hardware" del mouse principal
-    public double Velocidad2 = 1.0;   // para hacer mas rapido o lento el segundo mouse
+    public string Principal;   // numero|id del mouse principal
+    public double Velocidad2 = 1.0;   // velocidad del mouse 2
 
     public static Configuracion Cargar()
     {
@@ -88,7 +83,7 @@ class Configuracion
             string clave = partes[0].Trim();
             string valor = partes[1].Trim();
 
-            // "primary" y "speed2" son los nombres de la version anterior
+            // primary y speed2 = version vieja
             if (clave == "principal" || clave == "primary")
                 config.Principal = valor == "" ? null : valor;
 
@@ -109,7 +104,6 @@ class Configuracion
         }
         catch (Exception)
         {
-            // Si no se puede guardar no pasa nada, la proxima vez vuelve a preguntar
         }
     }
 }

@@ -1,5 +1,4 @@
-// El corazon del programa. Corre en su propio hilo y recibe cada movimiento y click
-// de cada mouse ANTES que Windows. Decide que dejar pasar y que hacer con el segundo mouse.
+// lo principal, recibe todo de los mouse antes que windows
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -8,35 +7,33 @@ using System.Windows.Forms;
 
 class Motor : IDisposable
 {
-    // Bits del campo Estado (ver interception.h)
     const ushort BitsDeBotones = 0x03FF;
     const ushort BitsDeRueda = 0x0C00;
     const ushort SoltoDerecho = 0x0008;
 
-    // Al soltar click derecho dejamos el cursor un momento donde esta el segundo mouse,
-    // porque algunos programas leen la posicion del cursor para saber donde abrir el menu
+    // espera al soltar click derecho para que el menu salga en la flecha naranja
     const int EsperaParaMenuMs = 80;
 
     class EstadoMouse
     {
         public double X, Y;
         public bool YaSeUso;
-        public byte Botones;   // un bit por boton apretado
+        public byte Botones;
     }
 
     readonly IntPtr contexto;
     readonly Pantalla pantalla;
     readonly Configuracion config;
     readonly EstadoMouse[] mouses = new EstadoMouse[Interception.UltimoMouse + 1];
-    readonly Rectangle escritorio = SystemInformation.VirtualScreen;   // todos los monitores juntos
+    readonly Rectangle escritorio = SystemInformation.VirtualScreen;
     readonly Stopwatch reloj = Stopwatch.StartNew();
-    readonly TrazoMouse[] lote = new TrazoMouse[3];   // se reutiliza para no crear basura en cada click
+    readonly TrazoMouse[] lote = new TrazoMouse[3];
     readonly double velocidadWindows;
     readonly bool precisionWindows;
 
-    int principal;            // numero del mouse principal (0 = todavia no lo sabemos)
-    int arrastrando;          // segundo mouse con un boton apretado (0 = ninguno)
-    bool cursorPrestado;      // el cursor real esta en la flecha de un segundo mouse
+    int principal;            // 0 = aun no hay
+    int arrastrando;          // mouse 2 arrastrando
+    bool cursorPrestado;
     long devolverCursorEn = -1;
     long revisarOtraVezEn = -1;
 
@@ -61,7 +58,6 @@ class Motor : IDisposable
         principal = BuscarPrincipalGuardado();
         pantalla.Principal = principal;
 
-        // Lo que la pantalla nos pide desde el menu del icono
         pantalla.AlElegirPrincipal = () => pidieronElegirPrincipal = true;
         pantalla.AlCambiarDispositivos = () => cambiaronLosDispositivos = true;
         pantalla.AlAbrirConfiguracion = () =>
@@ -76,7 +72,7 @@ class Motor : IDisposable
         Interception.CapturarTodosLosMouse(contexto);
         corriendo = true;
 
-        // Prioridad alta para que el mouse responda aunque haya programas pesados
+        // prioridad alta para que no haya lag
         hilo = new Thread(Bucle) { IsBackground = true, Priority = ThreadPriority.Highest, Name = "mouses" };
         hilo.Start();
     }
@@ -87,7 +83,7 @@ class Motor : IDisposable
 
         while (corriendo)
         {
-            // Sin eventos el hilo se queda dormido dentro del driver
+            // si no pasa nada se queda dormido
             uint espera = 500;
             if (devolverCursorEn >= 0)
             {
@@ -118,8 +114,7 @@ class Motor : IDisposable
 
         if (arrastrando != 0)
         {
-            // El segundo mouse esta arrastrando algo y tiene el cursor.
-            // El principal se dibuja como flecha blanca y no lo dejamos pasar a Windows.
+            // el otro esta arrastrando, el principal va como flecha blanca
             if (SeMovio(trazo))
             {
                 Mover(mouse, trazo.X, trazo.Y, 1.0);
@@ -131,7 +126,7 @@ class Motor : IDisposable
         if (cursorPrestado) DevolverCursor();
 
         mouse.Botones = ActualizarBotones(mouse.Botones, trazo.Estado);
-        Interception.Enviar(contexto, dispositivo, ref trazo, 1);   // pasa normal a Windows
+        Interception.Enviar(contexto, dispositivo, ref trazo, 1);
     }
 
     void LlegoDeOtroMouse(int dispositivo, ref TrazoMouse trazo)
@@ -140,7 +135,6 @@ class Motor : IDisposable
 
         if (!mouse.YaSeUso)
         {
-            // La primera vez aparece un poco al lado del cursor
             Nativo.GetCursorPos(out var cursor);
             mouse.X = cursor.X + 60;
             mouse.Y = cursor.Y + 60;
@@ -159,24 +153,23 @@ class Motor : IDisposable
             return;
         }
 
-        // Si otro esta arrastrando, o si solo se movio, el cursor real ni se entera.
-        // Esto es lo que evita el parpadeo cuando mueves los dos a la vez.
+        // si solo se movio no se toca el cursor, asi no parpadea
         if (arrastrando != 0 || mouses[principal].Botones != 0 || !hizoClickORueda) return;
 
         PrestarCursor();
 
-        // Todo en un solo envio: ir a la flecha, hacer el click y (si toca) regresar
+        // ir a la flecha, click y regresar
         int n = 0;
         lote[n++] = IrA(mouse);
         lote[n++] = SoloBotones(trazo);
         mouse.Botones = ActualizarBotones(mouse.Botones, botones);
 
         if (mouse.Botones != 0)
-            arrastrando = dispositivo;                         // sigue apretado: puede ser un arrastre
+            arrastrando = dispositivo;   // arrastre
         else if ((botones & SoltoDerecho) != 0)
-            devolverCursorEn = Ahora + EsperaParaMenuMs;        // dejamos que se abra el menu
+            devolverCursorEn = Ahora + EsperaParaMenuMs;
         else
-            lote[n++] = IrA(mouses[principal]);                // rueda: regresamos de una vez
+            lote[n++] = IrA(mouses[principal]);
 
         Interception.Enviar(contexto, principal, lote, (uint)n);
         ActualizarFlechaBlanca();
@@ -195,7 +188,6 @@ class Motor : IDisposable
 
         if (mouse.Botones == 0)
         {
-            // Solto todos los botones: termina el arrastre
             arrastrando = 0;
             if ((botones & SoltoDerecho) != 0)
                 devolverCursorEn = Ahora + EsperaParaMenuMs;
@@ -207,7 +199,7 @@ class Motor : IDisposable
         ActualizarFlechaBlanca();
     }
 
-    // Antes de usar el cursor para el segundo mouse, anotamos donde estaba el principal
+    // guarda donde estaba el principal
     void PrestarCursor()
     {
         if (!cursorPrestado)
@@ -231,7 +223,6 @@ class Motor : IDisposable
         pantalla.Ocultar(principal);
     }
 
-    // Mientras el cursor esta prestado, dibujamos una flecha blanca donde quedo el principal
     void ActualizarFlechaBlanca()
     {
         bool yaRegreso = arrastrando == 0 && devolverCursorEn < 0;
@@ -246,19 +237,17 @@ class Motor : IDisposable
         }
     }
 
-    // Trazo que pone el cursor justo en la posicion de ese mouse.
-    // El driver usa coordenadas de 0 a 65535 sobre todo el escritorio.
+    // posicion absoluta 0 a 65535
     TrazoMouse IrA(EstadoMouse mouse)
     {
         return new TrazoMouse
         {
-            Banderas = 0x001 | 0x002,   // posicion absoluta sobre el escritorio virtual
+            Banderas = 0x001 | 0x002,
             X = (int)Math.Round((mouse.X - escritorio.Left) * 65535.0 / Math.Max(1, escritorio.Width - 1)),
             Y = (int)Math.Round((mouse.Y - escritorio.Top) * 65535.0 / Math.Max(1, escritorio.Height - 1)),
         };
     }
 
-    // El mismo trazo pero sin movimiento, solo botones y rueda
     static TrazoMouse SoloBotones(TrazoMouse trazo)
     {
         return new TrazoMouse { Estado = trazo.Estado, Rueda = trazo.Rueda, Info = trazo.Info };
@@ -266,18 +255,17 @@ class Motor : IDisposable
 
     static bool SeMovio(TrazoMouse trazo)
     {
-        return (trazo.Banderas & 0x001) == 0 && (trazo.X != 0 || trazo.Y != 0);   // bit 0 apagado = relativo
+        return (trazo.Banderas & 0x001) == 0 && (trazo.X != 0 || trazo.Y != 0);
     }
 
-    // Movemos la flecha con la misma velocidad que tiene configurada Windows,
-    // asi el segundo mouse se siente parecido al principal
+    // misma velocidad que windows x velocidad2
     void Mover(EstadoMouse mouse, int dx, int dy, double extra)
     {
         double factor = velocidadWindows * extra;
 
         if (precisionWindows)
         {
-            // Aproximacion de "Mejorar precision del puntero": lento = mas preciso, rapido = llega mas lejos
+            // parecido a mejorar precision del puntero
             double rapidez = Math.Sqrt(dx * dx + dy * dy);
             factor *= Math.Clamp(0.45 + rapidez * 0.12, 0.45, 2.6);
         }
@@ -286,8 +274,7 @@ class Motor : IDisposable
         mouse.Y = Math.Clamp(mouse.Y + dy * factor, escritorio.Top, escritorio.Bottom - 1);
     }
 
-    // En Estado cada boton tiene dos bits: uno para "apreto" y el siguiente para "solto".
-    // Boton 1 = bits 0 y 1, boton 2 = bits 2 y 3, etc.
+    // cada boton tiene 2 bits, apreto y solto
     static byte ActualizarBotones(byte apretados, ushort estado)
     {
         for (int boton = 0; boton < 5; boton++)
@@ -301,8 +288,7 @@ class Motor : IDisposable
         return apretados;
     }
 
-    // Windows nos avisa cuando se conecta o desconecta algo (no revisamos a cada rato).
-    // Revisamos al momento y otra vez un poco despues por si el driver tarda en soltarlo.
+    // revisa al desconectar y otra vez 1.5s despues
     void RevisarDesconectados()
     {
         if (cambiaronLosDispositivos)
@@ -324,7 +310,7 @@ class Motor : IDisposable
         {
             var mouse = mouses[d];
             if (!mouse.YaSeUso || d == principal) continue;
-            if (Interception.IdHardware(contexto, d) != null) continue;   // sigue conectado
+            if (Interception.IdHardware(contexto, d) != null) continue;
 
             if (arrastrando == d)
             {
@@ -337,10 +323,10 @@ class Motor : IDisposable
         }
     }
 
-    // Lo que el usuario tiene puesto en Configuracion > Mouse > Velocidad del puntero
+    // velocidad del puntero de windows
     static (double, bool) LeerAjustesDelPuntero()
     {
-        // Tabla de Windows: posicion de la barra (1 a 20) -> multiplicador. La posicion 10 es 1x.
+        // barra 1 a 20, la 10 es normal
         double[] multiplicadores = { 1, 1 / 32.0, 1 / 16.0, 1 / 8.0, 2 / 8.0, 3 / 8.0, 4 / 8.0, 5 / 8.0, 6 / 8.0, 7 / 8.0, 1,
                                      1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5 };
         int velocidad = 10;
@@ -352,7 +338,7 @@ class Motor : IDisposable
         return (multiplicadores[Math.Clamp(velocidad, 1, 20)], acelerar[2] != 0);
     }
 
-    // Buscamos el mouse principal guardado. Primero por numero + id, si no solo por id.
+    // busca el principal guardado
     int BuscarPrincipalGuardado()
     {
         if (config.Principal == null) return 0;
@@ -368,7 +354,7 @@ class Motor : IDisposable
         for (int d = Interception.PrimerMouse; d <= Interception.UltimoMouse; d++)
             if (Interception.IdHardware(contexto, d) == id) return d;
 
-        return 0;   // no esta conectado: el primero que se mueva sera el principal
+        return 0;
     }
 
     void GuardarPrincipal(int dispositivo)
@@ -398,7 +384,7 @@ class Motor : IDisposable
         hilo?.Join(1000);
         if (cursorPrestado) DevolverCursor();
 
-        // Al cerrar el contexto el driver deja pasar todo normal otra vez
+        // al cerrar todo vuelve a la normalidad
         Interception.DestruirContexto(contexto);
     }
 }

@@ -1,6 +1,5 @@
-// Ventana invisible que maneja lo visual: las flechas, el icono junto al reloj y Ctrl+Alt+Q.
-// El motor corre en otro hilo, asi que no toca las ventanas directamente: deja la posicion
-// anotada y nos manda un mensaje. Si llegan muchos movimientos seguidos, solo se dibuja el ultimo.
+// ventana invisible: flechas, icono del reloj y Ctrl+Alt+Q
+// si llegan muchos movimientos solo dibuja el ultimo
 using System;
 using System.Drawing;
 using System.Threading;
@@ -10,7 +9,7 @@ class Pantalla : Form
 {
     const int Total = Interception.UltimoMouse + 1;
 
-    // Colores fijos para los mouse secundarios, en orden. El primero siempre es naranja.
+    // colores de los otros mouse, el primero es naranja
     static readonly Color[] Colores =
     {
         Color.FromArgb(255, 140, 0),
@@ -49,7 +48,6 @@ class Pantalla : Form
         Nativo.RegisterHotKey(ventana, 1, Nativo.MOD_CONTROL | Nativo.MOD_ALT | Nativo.MOD_NOREPEAT, (uint)Keys.Q);
     }
 
-    // Estas dos se llaman desde el hilo del motor
     public void Mostrar(int dispositivo, double x, double y) => Pedir(dispositivo, x, y, true);
     public void Ocultar(int dispositivo) => Pedir(dispositivo, 0, 0, false);
 
@@ -59,7 +57,7 @@ class Pantalla : Form
         posY[dispositivo] = (int)y;
         visible[dispositivo] = mostrar;
 
-        // Solo mandamos mensaje si no hay otro esperando para este mouse
+        // solo si no hay otro mensaje esperando
         if (Interlocked.Exchange(ref mensajePendiente[dispositivo], 1) == 0)
             Nativo.PostMessage(ventana, Nativo.WM_MOVER_FLECHA, (IntPtr)dispositivo, IntPtr.Zero);
     }
@@ -69,7 +67,6 @@ class Pantalla : Form
         icono.ShowBalloonTip(5000, titulo, texto, ToolTipIcon.Info);
     }
 
-    // La ventana principal nunca se muestra
     protected override void SetVisibleCore(bool value) => base.SetVisibleCore(false);
 
     protected override void WndProc(ref Message m)
@@ -87,7 +84,7 @@ class Pantalla : Form
 
         if (m.Msg == Nativo.WM_DEVICECHANGE)
         {
-            // Windows avisa a todas las ventanas cuando se conecta o desconecta hardware
+            // se conecto o desconecto algo
             AlCambiarDispositivos?.Invoke();
         }
         else if (m.Msg == Nativo.WM_HOTKEY)
@@ -105,14 +102,14 @@ class Pantalla : Form
 
         if (dispositivo == Principal)
         {
-            // Flecha blanca normal, para cuando el cursor real se lo presta al otro mouse
+            // flecha blanca cuando el otro tiene el cursor
             flechas[dispositivo] = new Puntero(Color.White, null);
         }
         else
         {
             Color color = Colores[coloresUsados % Colores.Length];
             coloresUsados++;
-            string etiqueta = (coloresUsados + 1).ToString();   // el primer secundario es el "2"
+            string etiqueta = (coloresUsados + 1).ToString();
             flechas[dispositivo] = new Puntero(color, etiqueta);
         }
         return flechas[dispositivo];
@@ -122,7 +119,6 @@ class Pantalla : Form
     {
         AlElegirPrincipal?.Invoke();
 
-        // Borramos las flechas para que los colores se repartan de nuevo
         for (int i = 0; i < Total; i++)
         {
             flechas[i]?.Dispose();

@@ -1,26 +1,22 @@
-// Funciones de Windows que C# no trae directamente (user32.dll y gdi32.dll).
-// Los nombres en mayusculas son los mismos de la documentacion de Microsoft para que sea facil buscarlos.
+// funciones de windows (user32 y gdi32)
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
 static class Nativo
 {
-    // Mensajes
     public const int WM_DEVICECHANGE = 0x0219;
     public const int WM_HOTKEY = 0x0312;
-    public const int WM_MOVER_FLECHA = 0x8001;   // mensaje propio (WM_APP + 1)
+    public const int WM_MOVER_FLECHA = 0x8001;
 
-    // Teclas para el atajo Ctrl+Alt+Q
+    // Ctrl+Alt+Q
     public const uint MOD_ALT = 0x0001;
     public const uint MOD_CONTROL = 0x0002;
     public const uint MOD_NOREPEAT = 0x4000;
 
-    // Ajustes del mouse de Windows
     public const uint SPI_GETMOUSE = 0x0003;
     public const uint SPI_GETMOUSESPEED = 0x0070;
 
-    // Para mover las flechas
     public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOACTIVATE = 0x0010;
@@ -28,7 +24,6 @@ static class Nativo
     public const uint SWP_NOSENDCHANGING = 0x0400;
     public const int SW_HIDE = 0;
 
-    // Estilos de ventana de las flechas
     public const int WS_EX_TOPMOST = 0x00000008;
     public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -78,8 +73,7 @@ static class Nativo
     static extern bool UpdateLayeredWindow(IntPtr ventana, IntPtr dcDestino, IntPtr posicion, ref Tamano tamano,
         IntPtr dcOrigen, ref Punto origen, int colorClave, ref Mezcla mezcla, int banderas);
 
-    // Pone una imagen PNG-style (con transparencia) como contenido de la ventana.
-    // Asi la flecha tiene bordes suaves en vez de pixelados.
+    // pone la imagen con transparencia para que no se vea pixelada
     public static void PonerImagenConTransparencia(IntPtr ventana, Bitmap imagen)
     {
         IntPtr pantalla = GetDC(IntPtr.Zero);
@@ -91,7 +85,7 @@ static class Nativo
         {
             var tamano = new Tamano { Ancho = imagen.Width, Alto = imagen.Height };
             var origen = new Punto();
-            var mezcla = new Mezcla { Opacidad = 255, FormatoAlfa = 1 };   // usar el alfa de cada pixel
+            var mezcla = new Mezcla { Opacidad = 255, FormatoAlfa = 1 };
             UpdateLayeredWindow(ventana, pantalla, IntPtr.Zero, ref tamano, memoria, ref origen, 0, ref mezcla, 2);
         }
         finally
