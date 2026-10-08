@@ -1,12 +1,12 @@
-**3. Instalación.**
+**Instalación.**
 Entrar a la carpeta DMClick dar doble click en **INSTALAR.cmd**.
 
 va a salir avisos administrador (ACCEPTAR).
 
-**4. Reiniciar.**
+**Reiniciar.**
 El driver solo empieza a funcionar después de reiniciar.
 
-**5. Uso.**
+**Uso.**
 Después de reiniciar, DMClick arranca solo y aparece en el adm de tareas
 
 Lo primero que se hace es mover el mouse principal luego se queda guardado. El otro mouse va a ser la flecha naranja.
