@@ -7,7 +7,7 @@ $pub  = Join-Path $root 'obj\publish'
 $ic   = Join-Path $root 'third_party\Interception'
 
 Remove-Item (Join-Path $root 'dist') -Recurse -Force -ErrorAction SilentlyContinue
-& $Dotnet publish (Join-Path $root 'DualMouse.csproj') -c Release -o $pub
+& $Dotnet publish (Join-Path $root 'DualMouse.csproj') -c Paquete -o $pub
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish fallo" }
 
 New-Item -ItemType Directory -Force "$out\app", "$out\driver" | Out-Null

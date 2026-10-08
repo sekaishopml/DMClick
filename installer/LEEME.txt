@@ -21,7 +21,7 @@ USO
   - Icono en la bandeja (junto al reloj):
       Elegir mouse principal / Abrir configuracion (velocidad) / Salir
   - Ctrl+Alt+Q cierra DM-CLICK.
-  - Velocidad del mouse 2: cambia speed2 en la configuracion (1.0 normal, 1.3 mas rapido,
+  - Velocidad del mouse 2: cambia velocidad2 en la configuracion (1.0 normal, 1.3 mas rapido,
     0.8 mas lento) y vuelve a abrir DM-CLICK.
 
 INSTALAR SIN INICIO AUTOMATICO

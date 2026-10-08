@@ -53,7 +53,7 @@ Dale click derecho al icono de DMClick al lado del reloj y vas a ver tres opcion
 
 **Elegir mouse principal**, por si te equivocaste de mouse. Después de darle, mueve el que quieres como principal.
 
-**Abrir configuración**, para cambiar la velocidad del segundo mouse. Cambia el número de speed2 (1.0 es normal, 1.3 más rápido, 0.8 más lento), guarda y vuelve a abrir DMClick.
+**Abrir configuración**, para cambiar la velocidad del segundo mouse. Cambia el número de velocidad2 (1.0 es normal, 1.3 más rápido, 0.8 más lento), guarda y vuelve a abrir DMClick.
 
 **Salir**, que cierra el programa. También puedes cerrarlo con Ctrl + Alt + Q.
 

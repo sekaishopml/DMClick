@@ -7,7 +7,6 @@
     <Product>DM-CLICK</Product>
     <Version>1.1.0</Version>
     <UseWindowsForms>true</UseWindowsForms>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
@@ -20,7 +19,8 @@
   </PropertyGroup>
 
   <!-- Paquete para otras PCs: un solo .exe que incluye .NET (no hay que instalar nada) -->
-  <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Paquete'">
+    <Optimize>true</Optimize>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
