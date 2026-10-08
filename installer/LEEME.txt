@@ -1,0 +1,42 @@
+DM-CLICK - dos mouse, dos punteros
+===================================
+
+REQUISITOS
+  - Windows 10 u 11 de 64 bits (x64). No funciona en PCs ARM.
+  - Permiso de administrador para instalar.
+  - No hace falta instalar .NET: va incluido en DM-CLICK.exe.
+
+INSTALAR
+  1. Copia esta carpeta completa a la otra PC (o descomprime el .zip).
+  2. Doble click en INSTALAR.cmd y acepta el aviso de administrador.
+     El instalador revisa que ya esta instalado y solo agrega lo que falta:
+       - Programa en C:\Program Files\DM-CLICK
+       - Driver Interception (si no estaba)
+       - Accesos directos e inicio automatico con Windows
+  3. Si instalo el driver, reinicia Windows.
+  4. Despues del reinicio, mueve primero tu mouse PRINCIPAL.
+     El otro mouse tendra la flecha naranja "2".
+
+USO
+  - Icono en la bandeja (junto al reloj):
+      Elegir mouse principal / Abrir configuracion (velocidad) / Salir
+  - Ctrl+Alt+Q cierra DM-CLICK.
+  - Velocidad del mouse 2: cambia speed2 en la configuracion (1.0 normal, 1.3 mas rapido,
+    0.8 mas lento) y vuelve a abrir DM-CLICK.
+
+INSTALAR SIN INICIO AUTOMATICO
+  INSTALAR.cmd -SinInicioAutomatico
+
+DESINSTALAR
+  Configuracion > Aplicaciones > DM-CLICK > Desinstalar
+  (pregunta si tambien quieres quitar el driver).
+
+PROBLEMAS
+  - "El driver Interception no esta activo": reinicia Windows. Si sigue, ejecuta
+    INSTALAR.cmd de nuevo.
+  - Si conectas y desconectas mouse muchas veces (~10) sin reiniciar, pueden dejar de
+    responder: reinicia Windows.
+  - Clicks del mouse 2 en programas abiertos como administrador: abre DM-CLICK tambien
+    como administrador.
+
+Driver: Interception (c) Francisco Lopes da Silva - LGPL 3.0 (licencia en driver\).
