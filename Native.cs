@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 static class Native
 {
     public const int WM_HOTKEY = 0x0312;
+    public const int WM_DEVICECHANGE = 0x0219;
     public const int WM_APP_POINTER = 0x8000 + 1;
 
     public const uint MOD_ALT = 0x0001;

@@ -70,6 +70,8 @@ sealed unsafe class Engine : IDisposable
     Thread thread;
     volatile bool running;
     volatile bool resetRequested;
+    volatile bool devicesChanged;   // lo marca la UI cuando Windows avisa WM_DEVICECHANGE
+    long recheckAt = -1;
 
     public bool HasPrimary => primary != 0;
 
@@ -82,6 +84,7 @@ sealed unsafe class Engine : IDisposable
         primary = FindPrimary();
         hub.Primary = primary;
         hub.RequestPrimaryReset = () => resetRequested = true;
+        hub.DevicesChanged = () => devicesChanged = true;
         hub.OpenConfig = () =>
         {
             cfg.Save();
@@ -100,19 +103,26 @@ sealed unsafe class Engine : IDisposable
     void Run()
     {
         MouseStroke s;
-        long nextPresenceCheck = 0;
         while (running)
         {
-            uint wait = 200;
+            // Sin eventos el hilo duerme en el driver; solo despierta 2 veces por segundo para
+            // ver si debe cerrarse o si Windows aviso de un cambio de dispositivos.
+            uint wait = 500;
             if (restoreAt >= 0)
             {
                 long left = restoreAt - clock.ElapsedMilliseconds;
                 if (left <= 0) Restore(); else wait = (uint)left;
             }
 
-            if (clock.ElapsedMilliseconds >= nextPresenceCheck)
+            if (devicesChanged)
             {
-                nextPresenceCheck = clock.ElapsedMilliseconds + 1000;
+                devicesChanged = false;
+                DropDisconnected();
+                recheckAt = clock.ElapsedMilliseconds + 1500;   // por si el driver tarda en soltar el dispositivo
+            }
+            else if (recheckAt >= 0 && clock.ElapsedMilliseconds >= recheckAt)
+            {
+                recheckAt = -1;
                 DropDisconnected();
             }
 

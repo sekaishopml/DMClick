@@ -41,6 +41,7 @@ sealed class Hub : Form
 
     public Action RequestPrimaryReset;
     public Action OpenConfig;
+    public Action DevicesChanged;
 
     public void Notify(string title, string text) => tray.ShowBalloonTip(5000, title, text, ToolTipIcon.Info);
 
@@ -80,7 +81,12 @@ sealed class Hub : Form
             else p.Conceal();
             return;
         }
-        if (m.Msg == Native.WM_HOTKEY)
+        if (m.Msg == Native.WM_DEVICECHANGE)
+        {
+            // Windows avisa a todas las ventanas cuando se conecta/desconecta hardware: sin sondeo
+            DevicesChanged?.Invoke();
+        }
+        else if (m.Msg == Native.WM_HOTKEY)
         {
             Application.Exit();
             return;
