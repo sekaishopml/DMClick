@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 
-function Ok($t)   { Write-Host "  [OK] $t" -ForegroundColor Green }
+function Ok($t)   { Write-Host "  [oki] $t" -ForegroundColor Green }
 function Info($t) { Write-Host "  [..] $t" -ForegroundColor Cyan }
 function Bad($t)  { Write-Host "  [X]  $t" -ForegroundColor Red; Read-Host "Presiona Enter para cerrar" | Out-Null; exit 1 }
 
@@ -20,21 +20,21 @@ function Find-Dotnet {
 }
 
 Write-Host ""
-Write-Host "=== DM-CLICK: preparando desde el codigo ===" -ForegroundColor White
+Write-Host "DM-CLICK: compilando..." -ForegroundColor White
 Write-Host ""
 
 # --- .NET 8 SDK (solo para compilar) ---
 $dotnet = Find-Dotnet
 if ($dotnet) {
-    Ok ".NET 8 SDK ya instalado"
+    Ok ".NET 8 SDK instalado..."
 } else {
-    Info "Instalando .NET 8 SDK (puede tardar unos minutos)..."
+    Info "Instalando .NET 8 SDK...."
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install --id Microsoft.DotNet.SDK.8 -e --accept-package-agreements --accept-source-agreements --silent | Out-Host
         $dotnet = Find-Dotnet
     }
     if (-not $dotnet) {
-        Info "Probando con el instalador oficial de Microsoft..."
+        Info "Probando con el instalador oficial"
         $tmp = Join-Path $env:TEMP 'dotnet-install.ps1'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile $tmp -UseBasicParsing
@@ -49,16 +49,16 @@ if ($dotnet) {
 $sources = & $dotnet nuget list source | Out-String
 if ($sources -notmatch 'nuget\.org') {
     & $dotnet nuget add source 'https://api.nuget.org/v3/index.json' -n nuget.org | Out-Null
-    Ok "Fuente de paquetes nuget.org agregada"
+    Ok "Fuente de paquetes agregada"
 }
 
 # --- Compilar ---
-Info "Compilando DM-CLICK..."
+Info "Compilando mas cosas..."
 & (Join-Path $root 'CREAR-PAQUETE.ps1') -Dotnet $dotnet | Out-Null
 $setup = Join-Path $root 'dist\DM-CLICK-Setup\instalar.ps1'
-if (-not (Test-Path $setup)) { Bad "La compilacion fallo." }
-Ok "Compilado"
+if (-not (Test-Path $setup)) { Bad "La compilacion fallo, ya fue." }
+Ok "Compilado =)"
 
 # --- Instalar (pide administrador en otra ventana) ---
-Info "Abriendo el instalador (acepta el aviso de administrador)..."
+Info "Abriendo el instalador (aceptar el aviso de administrador)..."
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setup

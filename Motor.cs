@@ -1,4 +1,4 @@
-// lo principal, recibe todo de los mouse antes que windows
+// paquetes =)
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -83,7 +83,7 @@ class Motor : IDisposable
 
         while (corriendo)
         {
-            // si no pasa nada se queda dormido
+            // si no pasa nada se queda zzz
             uint espera = 500;
             if (devolverCursorEn >= 0)
             {
@@ -265,7 +265,7 @@ class Motor : IDisposable
 
         if (precisionWindows)
         {
-            // parecido a mejorar precision del puntero
+            // por mejorar precision del puntero
             double rapidez = Math.Sqrt(dx * dx + dy * dy);
             factor *= Math.Clamp(0.45 + rapidez * 0.12, 0.45, 2.6);
         }
@@ -274,7 +274,7 @@ class Motor : IDisposable
         mouse.Y = Math.Clamp(mouse.Y + dy * factor, escritorio.Top, escritorio.Bottom - 1);
     }
 
-    // cada boton tiene 2 bits, apreto y solto
+    // cada boton tiene 2 bits, apreta y suelta =)
     static byte ActualizarBotones(byte apretados, ushort estado)
     {
         for (int boton = 0; boton < 5; boton++)
