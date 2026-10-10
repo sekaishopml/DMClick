@@ -9,7 +9,9 @@ using System.Windows.Forms;
 class Puntero : Form
 {
     readonly Bitmap imagen;
+    readonly Bitmap imagenGrande;   // para el zoom del click
     readonly int margen;
+    readonly Timer finDelZoom = new Timer { Interval = 120 };
 
     public Puntero(Color color, string etiqueta)
     {
@@ -20,7 +22,14 @@ class Puntero : Form
         float escala = DeviceDpi / 96f;   // zoom de pantalla
         margen = (int)Math.Ceiling(1.5f * escala);
         imagen = Dibujar(color, etiqueta, escala, margen);
+        imagenGrande = Dibujar(color, etiqueta, escala * 1.2f, margen);
         Size = imagen.Size;
+
+        finDelZoom.Tick += (s, e) =>
+        {
+            finDelZoom.Stop();
+            Nativo.PonerImagenConTransparencia(Handle, imagen);
+        };
     }
 
     protected override CreateParams CreateParams
@@ -50,6 +59,14 @@ class Puntero : Form
         // topmost cada vez para quedar encima de los menus
         Nativo.SetWindowPos(Handle, Nativo.HWND_TOPMOST, x - margen, y - margen, 0, 0,
             Nativo.SWP_NOSIZE | Nativo.SWP_NOACTIVATE | Nativo.SWP_SHOWWINDOW | Nativo.SWP_NOSENDCHANGING);
+    }
+
+    // se agranda un momento y vuelve a su tamaño
+    public void Pulsar()
+    {
+        Nativo.PonerImagenConTransparencia(Handle, imagenGrande);
+        finDelZoom.Stop();
+        finDelZoom.Start();
     }
 
     public void Esconder()
@@ -115,7 +132,12 @@ class Puntero : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) imagen.Dispose();
+        if (disposing)
+        {
+            finDelZoom.Dispose();
+            imagen.Dispose();
+            imagenGrande.Dispose();
+        }
         base.Dispose(disposing);
     }
 }

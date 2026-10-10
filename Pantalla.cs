@@ -62,6 +62,17 @@ class Pantalla : Form
             Nativo.PostMessage(ventana, Nativo.WM_MOVER_FLECHA, (IntPtr)dispositivo, IntPtr.Zero);
     }
 
+    // zoom cortito de la flecha al hacer click
+    public void Pulsar(int dispositivo)
+    {
+        Nativo.PostMessage(ventana, Nativo.WM_PULSAR_FLECHA, (IntPtr)dispositivo, IntPtr.Zero);
+    }
+
+    public void Salir()
+    {
+        Nativo.PostMessage(ventana, Nativo.WM_SALIR, IntPtr.Zero, IntPtr.Zero);
+    }
+
     public void Notificar(string titulo, string texto)
     {
         icono.ShowBalloonTip(5000, titulo, texto, ToolTipIcon.Info);
@@ -82,12 +93,18 @@ class Pantalla : Form
             return;
         }
 
+        if (m.Msg == Nativo.WM_PULSAR_FLECHA)
+        {
+            FlechaDe((int)m.WParam).Pulsar();
+            return;
+        }
+
         if (m.Msg == Nativo.WM_DEVICECHANGE)
         {
             // se conecto o desconecto algo
             AlCambiarDispositivos?.Invoke();
         }
-        else if (m.Msg == Nativo.WM_HOTKEY)
+        else if (m.Msg == Nativo.WM_HOTKEY || m.Msg == Nativo.WM_SALIR)
         {
             Application.Exit();
             return;

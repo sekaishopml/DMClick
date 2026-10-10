@@ -8,6 +8,8 @@ static class Nativo
     public const int WM_DEVICECHANGE = 0x0219;
     public const int WM_HOTKEY = 0x0312;
     public const int WM_MOVER_FLECHA = 0x8001;
+    public const int WM_PULSAR_FLECHA = 0x8002;
+    public const int WM_SALIR = 0x8003;
 
     // Ctrl+Alt+Q
     public const uint MOD_ALT = 0x0001;
@@ -61,6 +63,11 @@ static class Nativo
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr ventana, int id);
     [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint accion, uint parametro, ref int valor, uint guardar);
     [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint accion, uint parametro, int[] valores, uint guardar);
+
+    // para esconder el cursor de windows mientras lo usa el mouse 2
+    [DllImport("Magnification.dll")] public static extern bool MagInitialize();
+    [DllImport("Magnification.dll")] public static extern bool MagUninitialize();
+    [DllImport("Magnification.dll")] public static extern bool MagShowSystemCursor(bool mostrar);
 
     [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr ventana);
     [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr ventana, IntPtr dc);

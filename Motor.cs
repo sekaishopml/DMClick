@@ -9,10 +9,10 @@ class Motor : IDisposable
 {
     const ushort BitsDeBotones = 0x03FF;
     const ushort BitsDeRueda = 0x0C00;
-    const ushort SoltoDerecho = 0x0008;
+    const ushort BitsDeApretar = 0x0155;
 
-    // espera al soltar click derecho para que el menu salga en la flecha naranja
-    const int EsperaParaMenuMs = 80;
+    // al soltar el cursor se queda un rato en la flecha naranja, asi vale el doble click y el menu
+    readonly int esperaParaDevolver = SystemInformation.DoubleClickTime;
 
     class EstadoMouse
     {
@@ -27,7 +27,7 @@ class Motor : IDisposable
     readonly EstadoMouse[] mouses = new EstadoMouse[Interception.UltimoMouse + 1];
     readonly Rectangle escritorio = SystemInformation.VirtualScreen;
     readonly Stopwatch reloj = Stopwatch.StartNew();
-    readonly TrazoMouse[] lote = new TrazoMouse[3];
+    readonly TrazoMouse[] lote = new TrazoMouse[2];
     readonly double velocidadWindows;
     readonly bool precisionWindows;
 
@@ -80,6 +80,7 @@ class Motor : IDisposable
     void Bucle()
     {
         var trazo = new TrazoMouse();
+        Nativo.MagInitialize();
 
         while (corriendo)
         {
@@ -106,6 +107,11 @@ class Motor : IDisposable
             else
                 LlegoDeOtroMouse(dispositivo, ref trazo);
         }
+
+        // al cerrar el cursor vuelve a su sitio y se ve otra vez
+        if (cursorPrestado) DevolverCursor();
+        Nativo.MagShowSystemCursor(true);
+        Nativo.MagUninitialize();
     }
 
     void LlegoDelPrincipal(int dispositivo, ref TrazoMouse trazo)
@@ -157,22 +163,20 @@ class Motor : IDisposable
         if (arrastrando != 0 || mouses[principal].Botones != 0 || !hizoClickORueda) return;
 
         PrestarCursor();
+        if ((botones & BitsDeApretar) != 0) pantalla.Pulsar(dispositivo);
 
-        // ir a la flecha, click y regresar
-        int n = 0;
-        lote[n++] = IrA(mouse);
-        lote[n++] = SoloBotones(trazo);
+        // ir a la flecha y click, el cursor regresa despues
+        lote[0] = IrA(mouse);
+        lote[1] = SoloBotones(trazo);
         mouse.Botones = ActualizarBotones(mouse.Botones, botones);
 
         if (mouse.Botones != 0)
             arrastrando = dispositivo;   // arrastre
-        else if ((botones & SoltoDerecho) != 0)
-            devolverCursorEn = Ahora + EsperaParaMenuMs;
         else
-            lote[n++] = IrA(mouses[principal]);
+            devolverCursorEn = Ahora + esperaParaDevolver;
 
-        Interception.Enviar(contexto, principal, lote, (uint)n);
-        ActualizarFlechaBlanca();
+        Interception.Enviar(contexto, principal, lote, 2);
+        pantalla.Mostrar(principal, mouses[principal].X, mouses[principal].Y);
     }
 
     void SeguirArrastrando(EstadoMouse mouse, TrazoMouse trazo, ushort botones, bool hizoClickORueda)
@@ -182,6 +186,7 @@ class Motor : IDisposable
 
         if (hizoClickORueda)
         {
+            if ((botones & BitsDeApretar) != 0) pantalla.Pulsar(arrastrando);
             lote[n++] = SoloBotones(trazo);
             mouse.Botones = ActualizarBotones(mouse.Botones, botones);
         }
@@ -189,14 +194,11 @@ class Motor : IDisposable
         if (mouse.Botones == 0)
         {
             arrastrando = 0;
-            if ((botones & SoltoDerecho) != 0)
-                devolverCursorEn = Ahora + EsperaParaMenuMs;
-            else
-                lote[n++] = IrA(mouses[principal]);
+            devolverCursorEn = Ahora + esperaParaDevolver;
         }
 
         Interception.Enviar(contexto, principal, lote, (uint)n);
-        ActualizarFlechaBlanca();
+        pantalla.Mostrar(principal, mouses[principal].X, mouses[principal].Y);
     }
 
     // guarda donde estaba el principal
@@ -208,6 +210,9 @@ class Motor : IDisposable
             mouses[principal].X = cursor.X;
             mouses[principal].Y = cursor.Y;
             cursorPrestado = true;
+
+            // se esconde el cursor de windows para que la flecha naranja no se vea blanca
+            Nativo.MagShowSystemCursor(false);
         }
         devolverCursorEn = -1;
     }
@@ -220,21 +225,8 @@ class Motor : IDisposable
         var volver = IrA(mouses[principal]);
         Interception.Enviar(contexto, principal, ref volver, 1);
         cursorPrestado = false;
+        Nativo.MagShowSystemCursor(true);
         pantalla.Ocultar(principal);
-    }
-
-    void ActualizarFlechaBlanca()
-    {
-        bool yaRegreso = arrastrando == 0 && devolverCursorEn < 0;
-        if (yaRegreso)
-        {
-            cursorPrestado = false;
-            pantalla.Ocultar(principal);
-        }
-        else
-        {
-            pantalla.Mostrar(principal, mouses[principal].X, mouses[principal].Y);
-        }
     }
 
     // posicion absoluta 0 a 65535
@@ -306,6 +298,13 @@ class Motor : IDisposable
 
     void QuitarLosDesconectados()
     {
+        // sin mouse principal se cierra el programa
+        if (principal != 0 && Interception.IdHardware(contexto, principal) == null)
+        {
+            pantalla.Salir();
+            return;
+        }
+
         for (int d = Interception.PrimerMouse; d <= Interception.UltimoMouse; d++)
         {
             var mouse = mouses[d];
@@ -382,7 +381,6 @@ class Motor : IDisposable
     {
         corriendo = false;
         hilo?.Join(1000);
-        if (cursorPrestado) DevolverCursor();
 
         // al cerrar todo vuelve a la normalidad
         Interception.DestruirContexto(contexto);
